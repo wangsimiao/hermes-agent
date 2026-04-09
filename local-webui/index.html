@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hermes Local Web UI</title>
+  <style>
+    :root {
+      --bg: #f4efe5;
+      --panel: rgba(255, 251, 245, 0.88);
+      --panel-strong: #fffaf1;
+      --text: #2e241d;
+      --muted: #7a6558;
+      --accent: #c46d2d;
+      --accent-deep: #8f4a1d;
+      --line: rgba(86, 58, 39, 0.14);
+      --user: #2f6c5d;
+      --assistant: #fff3d9;
+      --shadow: 0 20px 60px rgba(75, 49, 29, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(223, 180, 109, 0.35), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(117, 161, 144, 0.28), transparent 32%),
+        linear-gradient(160deg, #f7f0e4 0%, #efe6d8 42%, #e9dfd2 100%);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1100px, 100%);
+      min-height: min(90vh, 920px);
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .sidebar {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .brand {
+      padding: 20px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(196, 109, 45, 0.18), rgba(143, 74, 29, 0.07));
+      border: 1px solid rgba(196, 109, 45, 0.16);
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: 1.9rem;
+      letter-spacing: 0.02em;
+    }
+
+    .brand p,
+    .hint,
+    .status {
+      margin: 8px 0 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .field label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent-deep);
+    }
+
+    .field input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      background: rgba(255, 255, 255, 0.82);
+      color: var(--text);
+      font-size: 0.96rem;
+      outline: none;
+    }
+
+    .field input:focus,
+    textarea:focus {
+      border-color: rgba(196, 109, 45, 0.5);
+      box-shadow: 0 0 0 4px rgba(196, 109, 45, 0.12);
+    }
+
+    .chat {
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 22px 24px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 250, 241, 0.7);
+    }
+
+    .chat-header h2 {
+      margin: 0;
+      font-size: 1.2rem;
+    }
+
+    .chat-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .messages {
+      padding: 24px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .message {
+      max-width: min(760px, 88%);
+      padding: 16px 18px;
+      border-radius: 22px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      border: 1px solid var(--line);
+      animation: rise 180ms ease-out;
+    }
+
+    .message.user {
+      margin-left: auto;
+      background: color-mix(in srgb, var(--user) 18%, white);
+    }
+
+    .message.assistant {
+      background: var(--assistant);
+    }
+
+    .message.system {
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .composer {
+      padding: 18px 24px 24px;
+      border-top: 1px solid var(--line);
+      display: grid;
+      gap: 14px;
+      background: rgba(255, 250, 241, 0.76);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 120px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      font: inherit;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.84);
+      outline: none;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 20px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 140ms ease, opacity 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.58;
+      cursor: wait;
+      transform: none;
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-deep));
+      color: white;
+    }
+
+    .secondary {
+      background: rgba(255, 255, 255, 0.8);
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 880px) {
+      .shell {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside class="panel sidebar">
+      <section class="brand">
+        <h1>Hermes</h1>
+        <p>Local browser chat for your running Hermes Agent backend.</p>
+      </section>
+
+      <div class="field">
+        <label for="apiUrl">API URL</label>
+        <input id="apiUrl" value="http://127.0.0.1:8642/v1/chat/completions" />
+      </div>
+
+      <div class="field">
+        <label for="apiKey">Bearer Token</label>
+        <input id="apiKey" value="change-me-local-dev" />
+      </div>
+
+      <div class="field">
+        <label for="modelName">Model Name</label>
+        <input id="modelName" value="hermes-agent" />
+      </div>
+
+      <p class="hint">This page keeps the conversation in your browser and sends it to Hermes using the OpenAI-compatible chat endpoint.</p>
+      <p id="status" class="status">Ready.</p>
+    </aside>
+
+    <main class="panel chat">
+      <header class="chat-header">
+        <h2>Local Chat</h2>
+        <p>Start the Hermes API Server first, then chat here.</p>
+      </header>
+
+      <section id="messages" class="messages">
+        <div class="message system">Hermes local web UI is ready. Send a message when the API server is online.</div>
+      </section>
+
+      <section class="composer">
+        <textarea id="prompt" placeholder="Ask Hermes to inspect code, run commands, or explain the project..."></textarea>
+        <div class="actions">
+          <button id="resetBtn" class="secondary" type="button">Reset Chat</button>
+          <button id="sendBtn" class="primary" type="button">Send Message</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById("messages");
+    const promptEl = document.getElementById("prompt");
+    const sendBtn = document.getElementById("sendBtn");
+    const resetBtn = document.getElementById("resetBtn");
+    const statusEl = document.getElementById("status");
+    const apiUrlEl = document.getElementById("apiUrl");
+    const apiKeyEl = document.getElementById("apiKey");
+    const modelNameEl = document.getElementById("modelName");
+
+    const conversation = [];
+
+    function setStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    function renderMessage(role, content) {
+      const node = document.createElement("div");
+      node.className = `message ${role}`;
+      node.textContent = content;
+      messagesEl.appendChild(node);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function resetChat() {
+      conversation.length = 0;
+      messagesEl.innerHTML = "";
+      renderMessage("system", "Chat reset. You're talking to Hermes through the local API server.");
+      setStatus("Chat reset.");
+    }
+
+    async function sendMessage() {
+      const content = promptEl.value.trim();
+      if (!content) {
+        return;
+      }
+
+      const apiUrl = apiUrlEl.value.trim();
+      const apiKey = apiKeyEl.value.trim();
+      const model = modelNameEl.value.trim() || "hermes-agent";
+
+      conversation.push({ role: "user", content });
+      renderMessage("user", content);
+      promptEl.value = "";
+      sendBtn.disabled = true;
+      setStatus("Waiting for Hermes...");
+
+      try {
+        const response = await fetch(apiUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${apiKey}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: conversation
+          })
+        });
+
+        if (!response.ok) {
+          const details = await response.text();
+          throw new Error(`HTTP ${response.status}: ${details}`);
+        }
+
+        const data = await response.json();
+        const answer = data?.choices?.[0]?.message?.content || "(No response text)";
+        conversation.push({ role: "assistant", content: answer });
+        renderMessage("assistant", answer);
+        setStatus("Hermes replied successfully.");
+      } catch (error) {
+        const text = `Request failed: ${error.message}`;
+        renderMessage("system", text);
+        setStatus(text);
+      } finally {
+        sendBtn.disabled = false;
+        promptEl.focus();
+      }
+    }
+
+    sendBtn.addEventListener("click", sendMessage);
+    resetBtn.addEventListener("click", resetChat);
+    promptEl.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        if (!sendBtn.disabled) {
+          sendMessage();
+        }
+      }
+    });
+
+    resetChat();
+  </script>
+</body>
+</html>
